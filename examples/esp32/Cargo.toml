@@ -1,0 +1,13 @@
+[package]
+name = "bmp180-rs-example-esp32"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+esp32c3-hal = "0.15.0"
+esp-backtrace = { version = "0.10.0", features = [
+    "esp32c3",
+    "panic-handler",
+    "exception-handler",
+    "print-uart",
+] }
