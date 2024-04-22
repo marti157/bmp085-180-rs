@@ -4,10 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-esp32c3-hal = "0.15.0"
-esp-backtrace = { version = "0.10.0", features = [
-    "esp32c3",
-    "panic-handler",
+esp-backtrace = { version = "0.11.0", features = [
+    "esp32",
     "exception-handler",
-    "print-uart",
+    "panic-handler",
+    "println",
 ] }
+esp-hal = { version = "0.17.0", features = [ "esp32" ] }
+esp-println = { version = "0.9.0", features = ["esp32", "log"] }
+log = { version = "0.4.20" }
+
+[profile.dev]
+# Rust debug is too slow. 
+# For debug builds always builds with some optimization
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1 # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+lto = 'fat'
+opt-level = 's'
+overflow-checks = false
