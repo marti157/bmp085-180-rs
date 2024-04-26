@@ -28,11 +28,15 @@ fn main() -> ! {
 
     esp_println::logger::init_logger_from_env();
 
-    let mut bmp180 = BMP180::new(i2c);
+    let mut bmp180 = BMP180::new(i2c, delay);
     let id = bmp180.read_id().unwrap();
     log::info!("Device ID is 0x{:x}", id);
 
     delay.delay(500.millis());
+
+    let ut = bmp180.read_ut().unwrap();
+
+    log::info!("Measured temp is {}", ut);
 
     loop {}
 }
