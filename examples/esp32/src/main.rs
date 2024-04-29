@@ -29,8 +29,8 @@ fn main() -> ! {
     esp_println::logger::init_logger_from_env();
 
     let mut bmp180 = BMP180::new(i2c, delay);
-    let id = bmp180.read_id().unwrap();
-    log::info!("Device ID is 0x{:x}", id);
+    bmp180.init().unwrap();
+    log::info!("Device init");
 
     delay.delay(500.millis());
 
