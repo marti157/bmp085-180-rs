@@ -34,9 +34,8 @@ fn main() -> ! {
 
     delay.delay(500.millis());
 
-    let ut = bmp180.read_ut().unwrap();
-
-    log::info!("Measured temp is {}", ut);
+    let temp = bmp180.get_temperature().unwrap();
+    log::info!("Temperature: {}", temp);
 
     loop {}
 }

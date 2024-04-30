@@ -129,8 +129,8 @@ where
         Ok(())
     }
 
-    pub fn read_ut(&mut self) -> Result<u16, I2C::Error> {
-        let mut ut: u16;
+    fn read_ut(&mut self) -> Result<i16, I2C::Error> {
+        let mut ut: i16;
         let mut rx = [0];
 
         self.i2c
@@ -139,11 +139,21 @@ where
 
         self.i2c
             .write_read(self.address, &[BMP180_OUT_MSB_REG], &mut rx)?;
-        ut = (rx[0] as u16) << 8;
+        ut = (rx[0] as i16) << 8;
         self.i2c
             .write_read(self.address, &[BMP180_OUT_LSB_REG], &mut rx)?;
-        ut |= rx[0] as u16;
+        ut |= rx[0] as i16;
 
         Ok(ut)
+    }
+
+    pub fn get_temperature(&mut self) -> Result<f32, I2C::Error> {
+        let ut = self.read_ut()?;
+        let x1 = (ut as i32 - self.calib_data.ac6 as i32) * self.calib_data.ac5 as i32 >> 15;
+        let x2 = ((self.calib_data.mc as i32) << 11) / (x1 + self.calib_data.md as i32);
+        let b5 = x1 + x2;
+        let temperature = ((b5 + 8) >> 4) as f32 / 10.0;
+
+        Ok(temperature)
     }
 }
