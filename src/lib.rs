@@ -1,6 +1,7 @@
 #![no_std]
 
 mod constants;
+
 use constants::*;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c::I2c;
@@ -25,6 +26,7 @@ pub struct BMP180<I2C, D> {
     delayer: D,
     address: u8,
     calib_data: CalibrationData,
+    oss: u8,
 }
 
 impl<I2C, D> BMP180<I2C, D>
@@ -38,6 +40,7 @@ where
             delayer,
             address: BMP180_DEVICE_ADDR,
             calib_data: CalibrationData::default(),
+            oss: 0,
         }
     }
 
@@ -129,8 +132,8 @@ where
         Ok(())
     }
 
-    fn read_ut(&mut self) -> Result<i16, I2C::Error> {
-        let mut ut: i16;
+    fn read_ut(&mut self) -> Result<i32, I2C::Error> {
+        let mut ut: i32;
         let mut rx = [0];
 
         self.i2c
@@ -139,10 +142,10 @@ where
 
         self.i2c
             .write_read(self.address, &[BMP180_OUT_MSB_REG], &mut rx)?;
-        ut = (rx[0] as i16) << 8;
+        ut = (rx[0] as i32) << 8;
         self.i2c
             .write_read(self.address, &[BMP180_OUT_LSB_REG], &mut rx)?;
-        ut |= rx[0] as i16;
+        ut |= rx[0] as i32;
 
         Ok(ut)
     }
