@@ -25,3 +25,4 @@ pub const BMP180_MD_LSB_REG: u8 = 0xBF;
 pub const BMP180_CTRL_MEAS_REG: u8 = 0xF4;
 pub const BMP180_OUT_MSB_REG: u8 = 0xF6;
 pub const BMP180_OUT_LSB_REG: u8 = 0xF7;
+pub const BMP180_OUT_XLSB_REG: u8 = 0xF8;

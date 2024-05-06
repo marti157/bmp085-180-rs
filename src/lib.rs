@@ -150,13 +150,90 @@ where
         Ok(ut)
     }
 
-    pub fn get_temperature(&mut self) -> Result<f32, I2C::Error> {
-        let ut = self.read_ut()?;
+    fn read_up(&mut self) -> Result<i32, I2C::Error> {
+        let mut rx_buffer = [0; 3];
+
+        self.i2c.write(
+            self.address,
+            &[BMP180_CTRL_MEAS_REG, 0x34 + (self.oss << 6)],
+        )?;
+        self.delayer.delay_ms(5);
+
+        self.i2c
+            .write_read(self.address, &[BMP180_OUT_MSB_REG], &mut rx_buffer[0..1])?;
+        self.i2c
+            .write_read(self.address, &[BMP180_OUT_LSB_REG], &mut rx_buffer[1..2])?;
+        self.i2c
+            .write_read(self.address, &[BMP180_OUT_XLSB_REG], &mut rx_buffer[3..4])?;
+        let up =
+            (((rx_buffer[0] as i32) << 16) + ((rx_buffer[1] as i32) << 8) + (rx_buffer[0] as i32))
+                >> (8 - self.oss);
+
+        Ok(up)
+    }
+
+    /// Calculates temperature from uncompensated temperature value
+    ///
+    /// # Returns
+    ///
+    /// The value of `temperature` and the calculated `b5` coefficient.
+    ///
+    fn calculate_temperature(&self, ut: i32) -> (f32, i32) {
         let x1 = (ut as i32 - self.calib_data.ac6 as i32) * self.calib_data.ac5 as i32 >> 15;
         let x2 = ((self.calib_data.mc as i32) << 11) / (x1 + self.calib_data.md as i32);
         let b5 = x1 + x2;
         let temperature = ((b5 + 8) >> 4) as f32 / 10.0;
 
+        (temperature, b5)
+    }
+
+    /// Calculates pressure from uncompensated pressure value
+    ///
+    /// # Arguments
+    ///
+    /// * `b5` - B5 coefficient from temperature calculation.
+    /// * `up` - Uncompensated pressure.
+    ///
+    /// # Returns
+    ///
+    /// The value of `pressure`.
+    ///
+    fn calculate_pressure(&self, b5: i32, up: i32) -> i32 {
+        let b6: i32 = b5 as i32 - 4000;
+        let x1 = self.calib_data.b2 as i32 * ((b6 * b6) >> 12) >> 11;
+        let x2 = self.calib_data.ac2 as i32 * (b6 >> 11);
+        let x3 = x1 + x2;
+        let b3 = (((self.calib_data.ac1 as i32 * 4 + x3) >> self.oss) + 2) / 4;
+        let mut x1 = self.calib_data.ac3 as i32 * (b6 >> 13);
+        let mut x2 = self.calib_data.b2 as i32 * ((b6 * b6) >> 12) >> 16;
+        let x3 = (x1 + x2 + x3) >> 2;
+        let b4 = (self.calib_data.ac4 as u32 * (x3 as u32 + 0x8000)) >> 15;
+        let b7 = (up as u32 - b3 as u32) * (50_000 >> self.oss);
+        let p = if b7 < 0x80000000 {
+            (b7 as i32 * 2) / b4 as i32
+        } else {
+            (b7 as i32 / b4 as i32) * 2
+        };
+        x1 = (p >> 8) * (p >> 8);
+        x1 = (x1 * 3038) >> 16;
+        x2 = (-7357 * p) >> 16;
+        let pressure = p + (x1 + x2 + 3791) >> 4;
+
+        pressure
+    }
+
+    pub fn get_temperature(&mut self) -> Result<f32, I2C::Error> {
+        let ut = self.read_ut()?;
+        let (temperature, _) = self.calculate_temperature(ut);
+
         Ok(temperature)
+    }
+
+    pub fn get_pressure(&mut self) -> Result<i32, I2C::Error> {
+        let ut = self.read_ut()?;
+        let (_, b5) = self.calculate_temperature(ut);
+        let up = self.read_up()?;
+
+        Ok(self.calculate_pressure(b5, up))
     }
 }
