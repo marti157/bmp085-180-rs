@@ -9,6 +9,7 @@ use esp_hal::{
 
 #[entry]
 fn main() -> ! {
+    esp_println::logger::init_logger_from_env();
     let peripherals = Peripherals::take();
     let system = peripherals.SYSTEM.split();
 
@@ -25,10 +26,13 @@ fn main() -> ! {
         &clocks,
         None,
     );
-
-    esp_println::logger::init_logger_from_env();
-
     let mut bmp180 = BMP180::new(i2c, delay);
+
+    match bmp180.test_connection() {
+        Ok(_) => log::info!("Device connected"),
+        Err(msg) => log::error!("{}", msg),
+    }
+
     bmp180.init().unwrap();
     log::info!("Device init");
 
@@ -36,6 +40,9 @@ fn main() -> ! {
 
     let temp = bmp180.get_temperature().unwrap();
     log::info!("Temperature: {}", temp);
+
+    let pres = bmp180.get_pressure().unwrap();
+    log::info!("Pressure: {}", pres);
 
     loop {}
 }
