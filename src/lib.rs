@@ -27,6 +27,7 @@ pub struct BMP180<I2C, D> {
     address: u8,
     calib_data: CalibrationData,
     oss: u8,
+    sea_level_pressure: i32,
 }
 
 impl<I2C, D> BMP180<I2C, D>
@@ -41,6 +42,7 @@ where
             address: BMP180_DEVICE_ADDR,
             calib_data: CalibrationData::default(),
             oss: 0,
+            sea_level_pressure: 101_325,
         }
     }
 
@@ -235,5 +237,13 @@ where
         let up = self.read_up()?;
 
         Ok(self.calculate_pressure(b5, up))
+    }
+
+    pub fn get_altitude(&mut self) -> Result<f32, I2C::Error> {
+        let pressure = self.get_pressure()?;
+        let p_sea_level_ratio: f32 = pressure as f32 / self.sea_level_pressure as f32;
+        let altitude = 44_330.0 * (1.0 - libm::powf(p_sea_level_ratio, 1.0 / 5.255));
+
+        Ok(altitude)
     }
 }
