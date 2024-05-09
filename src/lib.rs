@@ -136,7 +136,7 @@ where
 
     fn read_ut(&mut self) -> Result<i32, I2C::Error> {
         let mut ut: i32;
-        let mut rx = [0];
+        let mut rx: [u8; 1] = [0];
 
         self.i2c
             .write(self.address, &[BMP180_CTRL_MEAS_REG, 0x2E])?;
@@ -153,23 +153,27 @@ where
     }
 
     fn read_up(&mut self) -> Result<i32, I2C::Error> {
-        let mut rx_buffer = [0; 3];
+        let mut rx_buffer: [u8; 4] = [0; 4];
 
         self.i2c.write(
             self.address,
             &[BMP180_CTRL_MEAS_REG, 0x34 + (self.oss << 6)],
         )?;
-        self.delayer.delay_ms(5);
+        self.delayer.delay_us(match self.oss {
+            0 => 4500,
+            1 => 7500,
+            2 => 13_000,
+            3 => 25_500,
+            _ => 25_500, // Value shouldn't be outside of range
+        });
 
         self.i2c
-            .write_read(self.address, &[BMP180_OUT_MSB_REG], &mut rx_buffer[0..1])?;
+            .write_read(self.address, &[BMP180_OUT_MSB_REG], &mut rx_buffer[1..2])?;
         self.i2c
-            .write_read(self.address, &[BMP180_OUT_LSB_REG], &mut rx_buffer[1..2])?;
+            .write_read(self.address, &[BMP180_OUT_LSB_REG], &mut rx_buffer[2..3])?;
         self.i2c
-            .write_read(self.address, &[BMP180_OUT_XLSB_REG], &mut rx_buffer[2..3])?;
-        let up =
-            (((rx_buffer[0] as i32) << 16) + ((rx_buffer[1] as i32) << 8) + (rx_buffer[0] as i32))
-                >> (8 - self.oss);
+            .write_read(self.address, &[BMP180_OUT_XLSB_REG], &mut rx_buffer[3..4])?;
+        let up = i32::from_be_bytes(rx_buffer) >> (8 - self.oss);
 
         Ok(up)
     }
