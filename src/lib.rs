@@ -209,7 +209,7 @@ where
         let x1 = self.calib_data.b2 as i32 * ((b6 * b6) >> 12) >> 11;
         let x2 = (self.calib_data.ac2 as i32 * b6) >> 11;
         let x3 = x1 + x2;
-        let b3 = (((self.calib_data.ac1 as i32 * 4 + x3) >> self.oss) + 2) / 4;
+        let b3 = (((self.calib_data.ac1 as i32 * 4 + x3) << self.oss) + 2) / 4;
         let mut x1 = (self.calib_data.ac3 as i32 * b6) >> 13;
         let mut x2 = self.calib_data.b1 as i32 * ((b6 * b6) >> 12) >> 16;
         let x3 = (x1 + x2 + 2) >> 2;
