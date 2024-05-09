@@ -7,7 +7,7 @@ use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c::I2c;
 
 #[derive(Debug, Default)]
-pub struct CalibrationData {
+struct CalibrationData {
     ac1: i16,
     ac2: i16,
     ac3: i16,
@@ -249,5 +249,10 @@ where
         let altitude = 44_330.0 * (1.0 - libm::powf(p_sea_level_ratio, 1.0 / 5.255));
 
         Ok(altitude)
+    }
+
+    pub fn set_oversampling_setting(&mut self, oss: u8) {
+        assert!(oss <= 3);
+        self.oss = oss;
     }
 }
