@@ -26,7 +26,7 @@ fn main() -> ! {
         &clocks,
         None,
     );
-    let mut bmp180 = BMP180::new(i2c, delay);
+    let mut bmp180 = BMP180::new(i2c, delay, Default::default());
 
     match bmp180.test_connection() {
         Ok(_) => log::info!("Device connected"),

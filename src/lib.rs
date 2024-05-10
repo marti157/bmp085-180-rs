@@ -30,18 +30,28 @@ pub struct BMP180<I2C, D> {
     sea_level_pressure: i32,
 }
 
+pub struct Config {
+    oss: u8,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config { oss: 0 }
+    }
+}
+
 impl<I2C, D> BMP180<I2C, D>
 where
     I2C: I2c,
     D: DelayNs,
 {
-    pub fn new(i2c: I2C, delayer: D) -> Self {
+    pub fn new(i2c: I2C, delayer: D, config: Config) -> Self {
         Self {
             i2c,
             delayer,
             address: BMP180_DEVICE_ADDR,
             calib_data: CalibrationData::default(),
-            oss: 0,
+            oss: config.oss,
             sea_level_pressure: 101_325,
         }
     }
