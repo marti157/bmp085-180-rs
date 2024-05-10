@@ -17,22 +17,40 @@ struct CalibrationData {
     md: i16,
 }
 
+pub enum Oss {
+    LowPower,
+    Standard,
+    HighRes,
+    UltraHighRes,
+}
+
+impl Oss {
+    fn val(&self) -> u8 {
+        match *self {
+            Oss::LowPower => 0,
+            Oss::Standard => 1,
+            Oss::HighRes => 2,
+            Oss::UltraHighRes => 3,
+        }
+    }
+}
+
 pub struct BMP<I2C, D> {
     i2c: I2C,
     delayer: D,
     address: u8,
     calib_data: CalibrationData,
-    oss: u8,
+    oss: Oss,
     sea_level_pressure: i32,
 }
 
 pub struct Config {
-    oss: u8,
+    pub oss: Oss,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Config { oss: 0 }
+        Config { oss: Oss::LowPower }
     }
 }
 
@@ -159,9 +177,11 @@ where
     fn read_up(&mut self) -> Result<i32, I2C::Error> {
         let mut rx_buffer: [u8; 4] = [0; 4];
 
-        self.i2c
-            .write(self.address, &[BMP_CTRL_MEAS_REG, 0x34 + (self.oss << 6)])?;
-        self.delayer.delay_us(match self.oss {
+        self.i2c.write(
+            self.address,
+            &[BMP_CTRL_MEAS_REG, 0x34 + (self.oss.val() << 6)],
+        )?;
+        self.delayer.delay_us(match self.oss.val() {
             0 => 4500,
             1 => 7500,
             2 => 13_000,
@@ -175,7 +195,7 @@ where
             .write_read(self.address, &[BMP_OUT_LSB_REG], &mut rx_buffer[2..3])?;
         self.i2c
             .write_read(self.address, &[BMP_OUT_XLSB_REG], &mut rx_buffer[3..4])?;
-        let up = i32::from_be_bytes(rx_buffer) >> (8 - self.oss);
+        let up = i32::from_be_bytes(rx_buffer) >> (8 - self.oss.val());
 
         Ok(up)
     }
@@ -211,12 +231,12 @@ where
         let x1 = self.calib_data.b2 as i32 * ((b6 * b6) >> 12) >> 11;
         let x2 = (self.calib_data.ac2 as i32 * b6) >> 11;
         let x3 = x1 + x2;
-        let b3 = (((self.calib_data.ac1 as i32 * 4 + x3) << self.oss) + 2) / 4;
+        let b3 = (((self.calib_data.ac1 as i32 * 4 + x3) << self.oss.val()) + 2) / 4;
         let mut x1 = (self.calib_data.ac3 as i32 * b6) >> 13;
         let mut x2 = self.calib_data.b1 as i32 * ((b6 * b6) >> 12) >> 16;
         let x3 = (x1 + x2 + 2) >> 2;
         let b4 = (self.calib_data.ac4 as u32 * (x3 as u32 + 0x8000)) >> 15;
-        let b7 = (up as u32 - b3 as u32) * (50_000 >> self.oss);
+        let b7 = (up as u32 - b3 as u32) * (50_000 >> self.oss.val());
         let p = if b7 < 0x80000000 {
             ((b7 as i64 * 2) / b4 as i64) as i32
         } else {
@@ -253,8 +273,7 @@ where
         Ok(altitude)
     }
 
-    pub fn set_oversampling_setting(&mut self, oss: u8) {
-        assert!(oss <= 3);
+    pub fn set_oversampling_setting(&mut self, oss: Oss) {
         self.oss = oss;
     }
 }
