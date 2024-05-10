@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use bmp180_rs::BMP180;
+use bmp085_180_rs::BMP;
 use esp_backtrace as _;
 use esp_hal::{
     clock::ClockControl, delay::Delay, gpio::IO, i2c::I2C, peripherals::Peripherals, prelude::*,
@@ -26,7 +26,7 @@ fn main() -> ! {
         &clocks,
         None,
     );
-    let mut bmp180 = BMP180::new(i2c, delay, Default::default());
+    let mut bmp180 = BMP::new(i2c, delay, Default::default());
 
     match bmp180.test_connection() {
         Ok(_) => log::info!("Device connected"),

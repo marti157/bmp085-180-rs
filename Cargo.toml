@@ -1,5 +1,5 @@
 [package]
-name = "bmp180-rs"
+name = "bmp085-180-rs"
 version = "0.1.0"
 edition = "2021"
 
