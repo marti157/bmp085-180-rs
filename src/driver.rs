@@ -54,13 +54,18 @@ pub struct BMP<I2C, D> {
 /// Driver configuration, used only during driver initialization.
 pub struct Config {
     pub oss: Oss,
+    /// Device I2C address, default is 0x77
+    pub address: u8,
 }
 
 impl Default for Config {
     /// Default configuration for the BMP085/180 driver.
     /// Oversampling setting defaults to [`LowPower`](Oss::LowPower)
     fn default() -> Self {
-        Config { oss: Oss::LowPower }
+        Config {
+            oss: Oss::LowPower,
+            address: BMP_DEVICE_ADDR,
+        }
     }
 }
 
@@ -89,7 +94,7 @@ where
         Self {
             i2c,
             delayer,
-            address: BMP_DEVICE_ADDR,
+            address: config.address,
             calib_data: CalibrationData::default(),
             oss: config.oss,
             sea_level_pressure: 101_325,
