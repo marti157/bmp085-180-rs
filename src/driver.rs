@@ -17,10 +17,16 @@ struct CalibrationData {
     md: i16,
 }
 
+/// Used to configure the driver's oversampling setting. The higher the value, the more measurements are taken and more accurate the results are,
+/// although the measurement will take longer. Only applies to pressure measurements.
 pub enum Oss {
+    /// Up to 4.5ms measurement time, 1 sample
     LowPower,
+    /// Up to 7.5ms measurement time, 2 samples
     Standard,
+    /// Up to 13.5ms measurement time, 4 samples
     HighRes,
+    /// Up to 25.5ms measurement time, 8 samples
     UltraHighRes,
 }
 
@@ -35,6 +41,7 @@ impl Oss {
     }
 }
 
+/// BMP085/BMP180 driver.
 pub struct BMP<I2C, D> {
     i2c: I2C,
     delayer: D,
@@ -44,11 +51,14 @@ pub struct BMP<I2C, D> {
     sea_level_pressure: i32,
 }
 
+/// Driver configuration, used only during driver initialization.
 pub struct Config {
     pub oss: Oss,
 }
 
 impl Default for Config {
+    /// Default configuration for the BMP085/180 driver.
+    /// Oversampling setting defaults to [`LowPower`](Oss::LowPower)
     fn default() -> Self {
         Config { oss: Oss::LowPower }
     }
@@ -59,6 +69,22 @@ where
     I2C: I2c,
     D: DelayNs,
 {
+    /// Creates a new [`BMP`](BMP) driver instance, valid for both the BMP085 and BMP180 modules.
+    ///
+    /// ### Arguments
+    ///
+    /// * `i2c` - A properly initialized/configured `embedded-hal` I2C peripheral.
+    /// * `delayer` - `embedded-hal` delay for your chip.
+    /// * `config` - Driver's initial [`configuration`](Config).
+    ///
+    /// ### Example
+    ///
+    /// ```ignore
+    /// let i2c = I2C::new(peripherals.I2C1, 100.kHz());
+    /// let delay = Delay::new();
+    ///
+    /// let mut my_bmp = BMP::new(i2c, delay, Default::default());
+    /// ```
     pub fn new(i2c: I2C, delayer: D, config: Config) -> Self {
         Self {
             i2c,
@@ -76,6 +102,17 @@ where
         Ok(id[0])
     }
 
+    /// Check if the BMP device is properly connected, can be used before initializing the driver.
+    ///
+    /// ### Arguments
+    ///
+    /// * `i2c` - A properly initialized/configured `embedded-hal` I2C peripheral.
+    /// * `delayer` - `embedded-hal` delay for your chip.
+    /// * `config` - Driver's initial [`configuration`](Config).
+    ///
+    /// ### Returns
+    ///
+    /// `Ok` if the device was detected and validated, `Err(msg)` otherwise, with `msg` containing more information.
     pub fn test_connection(&mut self) -> Result<(), &'static str> {
         match self.read_id() {
             Ok(0x55) => Ok(()),
@@ -84,6 +121,15 @@ where
         }
     }
 
+    /// Initialize and calibrate the driver.
+    ///
+    /// ### Arguments
+    ///
+    /// None
+    ///
+    /// ### Returns
+    ///
+    /// `Ok` if the device was properly initialized
     pub fn init(&mut self) -> Result<(), I2C::Error> {
         let mut rx = [0];
 
@@ -202,10 +248,9 @@ where
 
     /// Calculates temperature from uncompensated temperature value
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// The value of `temperature` and the calculated `b5` coefficient.
-    ///
     fn calculate_temperature(&self, ut: i32) -> (f32, i32) {
         let x1 = (ut as i32 - self.calib_data.ac6 as i32) * self.calib_data.ac5 as i32 >> 15;
         let x2 = ((self.calib_data.mc as i32) << 11) / (x1 + self.calib_data.md as i32);
@@ -217,15 +262,14 @@ where
 
     /// Calculates pressure from uncompensated pressure value
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `b5` - B5 coefficient from temperature calculation.
     /// * `up` - Uncompensated pressure.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// The value of `pressure`.
-    ///
     fn calculate_pressure(&self, b5: i32, up: i32) -> i32 {
         let b6: i32 = b5 as i32 - 4000;
         let x1 = self.calib_data.b2 as i32 * ((b6 * b6) >> 12) >> 11;
@@ -250,6 +294,15 @@ where
         pressure
     }
 
+    /// Measure and calculate temperature from the BMP device.
+    ///
+    /// ### Arguments
+    ///
+    /// None
+    ///
+    /// ### Returns
+    ///
+    /// `temperature` in degrees Celsius (ºC)
     pub fn get_temperature(&mut self) -> Result<f32, I2C::Error> {
         let ut = self.read_ut()?;
         let (temperature, _) = self.calculate_temperature(ut);
@@ -257,6 +310,15 @@ where
         Ok(temperature)
     }
 
+    /// Measure and calculate pressure from the BMP device.
+    ///
+    /// ### Arguments
+    ///
+    /// None
+    ///
+    /// ### Returns
+    ///
+    /// `pressure` in pascals (Pa)
     pub fn get_pressure(&mut self) -> Result<i32, I2C::Error> {
         let ut = self.read_ut()?;
         let (_, b5) = self.calculate_temperature(ut);
@@ -265,6 +327,16 @@ where
         Ok(self.calculate_pressure(b5, up))
     }
 
+    /// Calculate altitude from pressure pressure measurement on the BMP device.
+    /// Uses the pressure at sea level to perform the calculation.
+    ///
+    /// ### Arguments
+    ///
+    /// None
+    ///
+    /// ### Returns
+    ///
+    /// `altitude` in meters (m)
     pub fn get_altitude(&mut self) -> Result<f32, I2C::Error> {
         let pressure = self.get_pressure()?;
         let p_sea_level_ratio: f32 = pressure as f32 / self.sea_level_pressure as f32;
@@ -273,6 +345,16 @@ where
         Ok(altitude)
     }
 
+    /// Set the oversampling setting for the driver's measurements.
+    /// See [Oss](Oss).
+    ///
+    /// ### Arguments
+    ///
+    /// * `oss` - Driver's new [Oss](Oss) setting
+    ///
+    /// ### Returns
+    ///
+    /// Nothing
     pub fn set_oversampling_setting(&mut self, oss: Oss) {
         self.oss = oss;
     }
