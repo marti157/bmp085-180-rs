@@ -2,8 +2,16 @@
 name = "bmp085-180-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["marti157"]
+description = "Driver for BMP085 & BMP180 sensors."
+repository = "https://github.com/marti157/bmp085-180-rs"
+documentation = "https://docs.rs/bmp085-180-rs"
+categories = ["embedded", "hardware-support", "no-std"]
+keywords = ["bmp085", "bmp180", "driver", "i2c", "embedded-hal"]
+license = "MIT"
+readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+exclude = ["/examples", "**/.*"]
 
 [dependencies]
 embedded-hal = "1.0.0"
