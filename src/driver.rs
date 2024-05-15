@@ -111,9 +111,7 @@ where
     ///
     /// ### Arguments
     ///
-    /// * `i2c` - A properly initialized/configured `embedded-hal` I2C peripheral.
-    /// * `delayer` - `embedded-hal` delay for your chip.
-    /// * `config` - Driver's initial [`configuration`](Config).
+    /// None
     ///
     /// ### Returns
     ///
