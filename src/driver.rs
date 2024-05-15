@@ -54,8 +54,12 @@ pub struct BMP<I2C, D> {
 /// Driver configuration, used only during driver initialization.
 pub struct Config {
     pub oss: Oss,
-    /// Device I2C address, default is 0x77
+    /// Device I2C address, default is 0x77.
     pub address: u8,
+    /// Pressure at sea level in Pa, used in altitude calculation.
+    /// This value can change slightly under atmospheric conditions, so you can fine-tune it here.
+    /// Default is `101_325`.
+    pub sea_level_pressure: i32,
 }
 
 impl Default for Config {
@@ -65,6 +69,7 @@ impl Default for Config {
         Config {
             oss: Oss::LowPower,
             address: BMP_DEVICE_ADDR,
+            sea_level_pressure: DEFAULT_SEA_LEVEL_PESSURE,
         }
     }
 }
@@ -97,7 +102,7 @@ where
             address: config.address,
             calib_data: CalibrationData::default(),
             oss: config.oss,
-            sea_level_pressure: 101_325,
+            sea_level_pressure: config.sea_level_pressure,
         }
     }
 
@@ -304,5 +309,20 @@ where
     /// Nothing
     pub fn set_oversampling_setting(&mut self, oss: Oss) {
         self.oss = oss;
+    }
+
+    /// Set the value for pressure at sea level. This will alter the altitude calculation.
+    /// Certain atmospheric conditions can cause a variation in atmospheric pressure, so fine-tuning
+    /// this value can yield more accurate results.
+    ///
+    /// ### Arguments
+    ///
+    /// * `sea_level_pressure` - Value for the pressure at sea level (in Pa).
+    ///
+    /// ### Returns
+    ///
+    /// Nothing
+    pub fn set_sea_level_pressure(&mut self, sea_level_pressure: i32) {
+        self.sea_level_pressure = sea_level_pressure;
     }
 }
