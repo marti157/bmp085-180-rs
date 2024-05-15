@@ -124,6 +124,13 @@ where
         }
     }
 
+    #[inline(always)]
+    fn read16_i2c(&mut self, reg_h: u8, reg_l: u8, rx: &mut [u8; 2]) -> Result<u16, I2C::Error> {
+        self.i2c.write_read(self.address, &[reg_h], &mut rx[0..1])?;
+        self.i2c.write_read(self.address, &[reg_l], &mut rx[1..2])?;
+        Ok(((rx[0] as u16) << 8) | (rx[1] as u16))
+    }
+
     /// Initialize and calibrate the driver.
     ///
     /// ### Arguments
@@ -134,93 +141,30 @@ where
     ///
     /// `Ok` if the device was properly initialized
     pub fn init(&mut self) -> Result<(), I2C::Error> {
-        let mut rx = [0];
+        let mut rx: [u8; 2] = [0, 0];
 
-        self.i2c
-            .write_read(self.address, &[BMP_AC1_MSB_REG], &mut rx)?;
-        self.calib_data.ac1 = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_AC1_LSB_REG], &mut rx)?;
-        self.calib_data.ac1 |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_AC2_MSB_REG], &mut rx)?;
-        self.calib_data.ac2 = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_AC2_LSB_REG], &mut rx)?;
-        self.calib_data.ac2 |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_AC3_MSB_REG], &mut rx)?;
-        self.calib_data.ac3 = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_AC3_LSB_REG], &mut rx)?;
-        self.calib_data.ac3 |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_AC4_MSB_REG], &mut rx)?;
-        self.calib_data.ac4 = (rx[0] as u16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_AC4_LSB_REG], &mut rx)?;
-        self.calib_data.ac4 |= rx[0] as u16;
-        self.i2c
-            .write_read(self.address, &[BMP_AC5_MSB_REG], &mut rx)?;
-        self.calib_data.ac5 = (rx[0] as u16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_AC5_LSB_REG], &mut rx)?;
-        self.calib_data.ac5 |= rx[0] as u16;
-        self.i2c
-            .write_read(self.address, &[BMP_AC6_MSB_REG], &mut rx)?;
-        self.calib_data.ac6 = (rx[0] as u16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_AC6_LSB_REG], &mut rx)?;
-        self.calib_data.ac6 |= rx[0] as u16;
-        self.i2c
-            .write_read(self.address, &[BMP_B1_MSB_REG], &mut rx)?;
-        self.calib_data.b1 = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_B1_LSB_REG], &mut rx)?;
-        self.calib_data.b1 |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_B2_MSB_REG], &mut rx)?;
-        self.calib_data.b2 = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_B2_LSB_REG], &mut rx)?;
-        self.calib_data.b2 |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_MB_MSB_REG], &mut rx)?;
-        self.calib_data.mb = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_MB_LSB_REG], &mut rx)?;
-        self.calib_data.mb |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_MC_MSB_REG], &mut rx)?;
-        self.calib_data.mc = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_MC_LSB_REG], &mut rx)?;
-        self.calib_data.mc |= rx[0] as i16;
-        self.i2c
-            .write_read(self.address, &[BMP_MD_MSB_REG], &mut rx)?;
-        self.calib_data.md = (rx[0] as i16) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_MD_LSB_REG], &mut rx)?;
-        self.calib_data.md |= rx[0] as i16;
+        self.calib_data.ac1 = self.read16_i2c(BMP_AC1_MSB_REG, BMP_AC1_LSB_REG, &mut rx)? as i16;
+        self.calib_data.ac2 = self.read16_i2c(BMP_AC2_MSB_REG, BMP_AC2_LSB_REG, &mut rx)? as i16;
+        self.calib_data.ac3 = self.read16_i2c(BMP_AC3_MSB_REG, BMP_AC3_LSB_REG, &mut rx)? as i16;
+        self.calib_data.ac4 = self.read16_i2c(BMP_AC4_MSB_REG, BMP_AC4_LSB_REG, &mut rx)?;
+        self.calib_data.ac5 = self.read16_i2c(BMP_AC5_MSB_REG, BMP_AC5_LSB_REG, &mut rx)?;
+        self.calib_data.ac6 = self.read16_i2c(BMP_AC6_MSB_REG, BMP_AC6_LSB_REG, &mut rx)?;
+        self.calib_data.b1 = self.read16_i2c(BMP_B1_MSB_REG, BMP_B1_LSB_REG, &mut rx)? as i16;
+        self.calib_data.b2 = self.read16_i2c(BMP_B2_MSB_REG, BMP_B2_LSB_REG, &mut rx)? as i16;
+        self.calib_data.mb = self.read16_i2c(BMP_MB_MSB_REG, BMP_MB_LSB_REG, &mut rx)? as i16;
+        self.calib_data.mc = self.read16_i2c(BMP_MC_MSB_REG, BMP_MC_LSB_REG, &mut rx)? as i16;
+        self.calib_data.md = self.read16_i2c(BMP_MD_MSB_REG, BMP_MD_LSB_REG, &mut rx)? as i16;
 
         Ok(())
     }
 
     fn read_ut(&mut self) -> Result<i32, I2C::Error> {
-        let mut ut: i32;
-        let mut rx: [u8; 1] = [0];
+        let mut rx: [u8; 2] = [0, 0];
 
         self.i2c.write(self.address, &[BMP_CTRL_MEAS_REG, 0x2E])?;
         self.delayer.delay_ms(5);
 
-        self.i2c
-            .write_read(self.address, &[BMP_OUT_MSB_REG], &mut rx)?;
-        ut = (rx[0] as i32) << 8;
-        self.i2c
-            .write_read(self.address, &[BMP_OUT_LSB_REG], &mut rx)?;
-        ut |= rx[0] as i32;
-
-        Ok(ut)
+        Ok(self.read16_i2c(BMP_OUT_MSB_REG, BMP_OUT_LSB_REG, &mut rx)? as i32)
     }
 
     fn read_up(&mut self) -> Result<i32, I2C::Error> {
