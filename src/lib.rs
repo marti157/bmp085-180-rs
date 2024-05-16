@@ -5,11 +5,11 @@
 //!
 //! See the following driver methods:
 //!
-//! #### [`BMP::get_temperature`](BMP::get_temperature)
+//! #### [`BMP::read_temperature`](BMP::read_temperature)
 //!
-//! #### [`BMP::get_pressure`](BMP::get_pressure)
+//! #### [`BMP::read_pressure`](BMP::read_pressure)
 //!
-//! #### [`BMP::get_altitude`](BMP::get_altitude)
+//! #### [`BMP::read_altitude`](BMP::read_altitude)
 
 #![no_std]
 

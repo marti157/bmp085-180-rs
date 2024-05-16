@@ -163,7 +163,7 @@ where
         Ok(())
     }
 
-    fn read_ut(&mut self) -> Result<i32, I2C::Error> {
+    fn read_uncompensated_temperature(&mut self) -> Result<i32, I2C::Error> {
         let mut rx: [u8; 2] = [0, 0];
 
         self.i2c.write(self.address, &[BMP_CTRL_MEAS_REG, 0x2E])?;
@@ -172,7 +172,7 @@ where
         Ok(self.read16_i2c(BMP_OUT_MSB_REG, BMP_OUT_LSB_REG, &mut rx)? as i32)
     }
 
-    fn read_up(&mut self) -> Result<i32, I2C::Error> {
+    fn read_uncompensated_pressure(&mut self) -> Result<i32, I2C::Error> {
         let mut rx_buffer: [u8; 4] = [0; 4];
 
         self.i2c.write(
@@ -255,8 +255,8 @@ where
     /// ### Returns
     ///
     /// `temperature` in degrees Celsius (ºC)
-    pub fn get_temperature(&mut self) -> Result<f32, I2C::Error> {
-        let ut = self.read_ut()?;
+    pub fn read_temperature(&mut self) -> Result<f32, I2C::Error> {
+        let ut = self.read_uncompensated_temperature()?;
         let (temperature, _) = self.calculate_temperature(ut);
 
         Ok(temperature)
@@ -271,10 +271,10 @@ where
     /// ### Returns
     ///
     /// `pressure` in pascals (Pa)
-    pub fn get_pressure(&mut self) -> Result<i32, I2C::Error> {
-        let ut = self.read_ut()?;
+    pub fn read_pressure(&mut self) -> Result<i32, I2C::Error> {
+        let ut = self.read_uncompensated_temperature()?;
         let (_, b5) = self.calculate_temperature(ut);
-        let up = self.read_up()?;
+        let up = self.read_uncompensated_pressure()?;
 
         Ok(self.calculate_pressure(b5, up))
     }
@@ -289,8 +289,8 @@ where
     /// ### Returns
     ///
     /// `altitude` in meters (m)
-    pub fn get_altitude(&mut self) -> Result<f32, I2C::Error> {
-        let pressure = self.get_pressure()?;
+    pub fn read_altitude(&mut self) -> Result<f32, I2C::Error> {
+        let pressure = self.read_pressure()?;
         let p_sea_level_ratio: f32 = pressure as f32 / self.sea_level_pressure as f32;
         let altitude = 44_330.0 * (1.0 - libm::powf(p_sea_level_ratio, 1.0 / 5.255));
 

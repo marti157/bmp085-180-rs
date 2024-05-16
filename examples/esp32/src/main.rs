@@ -38,13 +38,13 @@ fn main() -> ! {
 
     delay.delay(500.millis());
 
-    let temp = bmp180.get_temperature().unwrap();
+    let temp = bmp180.read_temperature().unwrap();
     log::info!("Temperature: {} ºC", temp);
 
-    let pres = bmp180.get_pressure().unwrap();
+    let pres = bmp180.read_pressure().unwrap();
     log::info!("Pressure: {} Pa", pres);
 
-    let alt = bmp180.get_altitude().unwrap();
+    let alt = bmp180.read_altitude().unwrap();
     log::info!("Altitude: {} m", alt);
 
     loop {}
