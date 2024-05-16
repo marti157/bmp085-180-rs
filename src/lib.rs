@@ -15,6 +15,7 @@
 
 mod constants;
 mod driver;
+mod logic;
 mod types;
 
 pub use driver::*;
