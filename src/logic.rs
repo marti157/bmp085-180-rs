@@ -47,3 +47,9 @@ pub fn calculate_pressure(calib_data: &CalibrationData, oss: u8, b5: i32, up: i3
 
     pressure
 }
+
+pub fn calculate_altitude(pressure: i32, sea_level_pressure: i32) -> f32 {
+    let p_sea_level_ratio: f32 = pressure as f32 / sea_level_pressure as f32;
+    let altitude = 44_330.0 * (1.0 - libm::powf(p_sea_level_ratio, 1.0 / 5.255));
+    altitude
+}

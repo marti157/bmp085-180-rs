@@ -199,10 +199,7 @@ where
     /// `altitude` in meters (m)
     pub fn read_altitude(&mut self) -> Result<f32, I2C::Error> {
         let pressure = self.read_pressure()?;
-        let p_sea_level_ratio: f32 = pressure as f32 / self.sea_level_pressure as f32;
-        let altitude = 44_330.0 * (1.0 - libm::powf(p_sea_level_ratio, 1.0 / 5.255));
-
-        Ok(altitude)
+        Ok(logic::calculate_altitude(pressure, self.sea_level_pressure))
     }
 
     /// Set the oversampling setting for the driver's measurements.
@@ -231,6 +228,7 @@ where
     ///
     /// Nothing
     pub fn set_sea_level_pressure(&mut self, sea_level_pressure: i32) {
+        assert!(sea_level_pressure > 0);
         self.sea_level_pressure = sea_level_pressure;
     }
 }
