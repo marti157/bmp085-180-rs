@@ -15,5 +15,7 @@
 
 mod constants;
 mod driver;
+mod types;
 
 pub use driver::*;
+pub use types::{Config, Oss};
