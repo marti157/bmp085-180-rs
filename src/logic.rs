@@ -53,3 +53,70 @@ pub fn calculate_altitude(pressure: i32, sea_level_pressure: i32) -> f32 {
     let altitude = 44_330.0 * (1.0 - libm::powf(p_sea_level_ratio, 1.0 / 5.255));
     altitude
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CALIB_DATA: CalibrationData = CalibrationData {
+        ac1: 408,
+        ac2: -72,
+        ac3: -14383,
+        ac4: 32741,
+        ac5: 32757,
+        ac6: 23153,
+        b1: 6190,
+        b2: 4,
+        mb: -32768,
+        mc: -8711,
+        md: 2868,
+    };
+
+    #[test]
+    fn calculates_temperature_correctly() {
+        let ut = 27898;
+        let (temperature, b5) = calculate_temperature(&CALIB_DATA, ut);
+
+        assert!((temperature - 15.0).abs() < 0.1);
+        assert!((b5 - 2399).abs() <= 1)
+    }
+
+    #[test]
+    fn calculates_pressure_correctly() {
+        let oss = 0;
+        let b5 = 2399;
+        let up = 23_843;
+        let pressure = calculate_pressure(&CALIB_DATA, oss, b5, up);
+
+        assert_eq!(pressure, 69964);
+    }
+
+    #[test]
+    fn calculates_pressure_correctly_oss_1() {
+        let oss = 1;
+        let b5 = 2399;
+        let up = 47_686;
+        let pressure = calculate_pressure(&CALIB_DATA, oss, b5, up);
+
+        assert!((pressure - 69964).abs() < 3);
+    }
+
+    #[test]
+    fn calculates_pressure_correctly_oss_3() {
+        let oss = 3;
+        let b5 = 2399;
+        let up = 190_744;
+        let pressure = calculate_pressure(&CALIB_DATA, oss, b5, up);
+
+        assert!((pressure - 69964).abs() < 3);
+    }
+
+    #[test]
+    fn calculates_altitude_correctly() {
+        let pressure: i32 = 93_810;
+        let sea_level_pressure: i32 = 101_325;
+        let altitude = calculate_altitude(pressure, sea_level_pressure);
+
+        assert!((altitude - 645.0).abs() < 0.5);
+    }
+}
