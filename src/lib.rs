@@ -18,5 +18,4 @@ mod driver;
 mod logic;
 mod types;
 
-pub use driver::*;
-pub use types::{Config, Oss};
+pub use types::{Config, Oss, BMP};

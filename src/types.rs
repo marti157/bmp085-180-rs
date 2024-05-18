@@ -1,5 +1,15 @@
 use crate::constants::{BMP_DEVICE_ADDR, DEFAULT_SEA_LEVEL_PESSURE};
 
+/// BMP085/BMP180 driver.
+pub struct BMP<I2C, D> {
+    pub(crate) i2c: I2C,
+    pub(crate) delayer: D,
+    pub(crate) address: u8,
+    pub(crate) calib_data: CalibrationData,
+    pub(crate) oss: Oss,
+    pub(crate) sea_level_pressure: i32,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CalibrationData {
     pub ac1: i16,
@@ -27,6 +37,17 @@ pub enum Oss {
     HighRes,
     /// Up to 25.5ms measurement time, 8 samples
     UltraHighRes,
+}
+
+impl Oss {
+    pub(crate) fn val(&self) -> u8 {
+        match *self {
+            Oss::LowPower => 0,
+            Oss::Standard => 1,
+            Oss::HighRes => 2,
+            Oss::UltraHighRes => 3,
+        }
+    }
 }
 
 /// Driver configuration, used only during driver initialization.

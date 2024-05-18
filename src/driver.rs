@@ -4,27 +4,6 @@ use crate::types::*;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c::I2c;
 
-impl Oss {
-    fn val(&self) -> u8 {
-        match *self {
-            Oss::LowPower => 0,
-            Oss::Standard => 1,
-            Oss::HighRes => 2,
-            Oss::UltraHighRes => 3,
-        }
-    }
-}
-
-/// BMP085/BMP180 driver.
-pub struct BMP<I2C, D> {
-    i2c: I2C,
-    delayer: D,
-    address: u8,
-    calib_data: CalibrationData,
-    oss: Oss,
-    sea_level_pressure: i32,
-}
-
 impl<I2C, D> BMP<I2C, D>
 where
     I2C: I2c,
