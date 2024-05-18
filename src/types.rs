@@ -18,6 +18,8 @@ pub enum BMPError<I2CErr> {
     I2C(I2CErr),
     /// Invalid BMP device identifier
     InvalidDeviceId,
+    /// Invalid calibration data; should re-calibrate device
+    InvalidCalibrationData,
 }
 
 impl<E> From<E> for BMPError<E> {
@@ -33,6 +35,12 @@ impl<E: Display> Display for BMPError<E> {
         match self {
             BMPError::I2C(e) => write!(f, "I2C bus error: {e}"),
             BMPError::InvalidDeviceId => write!(f, "Unrecognized BMP device identifier"),
+            BMPError::InvalidCalibrationData => {
+                write!(
+                    f,
+                    "Invalid calibration values were present; device re-calibration recommended"
+                )
+            }
         }
     }
 }

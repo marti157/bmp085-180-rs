@@ -158,12 +158,10 @@ where
         let (_, b5) = logic::calculate_temperature(&self.calib_data, ut);
         let up = self.read_uncompensated_pressure()?;
 
-        Ok(logic::calculate_pressure(
-            &self.calib_data,
-            self.oss.val(),
-            b5,
-            up,
-        ))
+        match logic::calculate_pressure(&self.calib_data, self.oss.val(), b5, up) {
+            Some(pressure) => Ok(pressure),
+            None => Err(BMPError::InvalidCalibrationData),
+        }
     }
 
     /// Calculate altitude from pressure pressure measurement on the BMP device.
