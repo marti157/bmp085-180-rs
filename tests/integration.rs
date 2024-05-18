@@ -1,4 +1,4 @@
-use bmp085_180_rs::BMP;
+use bmp085_180_rs::{BMPError, BMP};
 use embedded_hal::i2c::ErrorKind;
 use embedded_hal_mock::eh1::delay::NoopDelay;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
@@ -21,7 +21,7 @@ fn test_connection_fails_with_invalid_id() {
 
     let mut bmp = BMP::new(i2c.clone(), NoopDelay, Default::default());
 
-    assert_eq!(bmp.test_connection(), Err("Unrecognized device identifier"));
+    assert_eq!(bmp.test_connection(), Err(BMPError::InvalidDeviceId));
     i2c.done();
 }
 
@@ -33,6 +33,6 @@ fn test_connection_fails_if_i2c_error() {
 
     let mut bmp = BMP::new(i2c.clone(), NoopDelay, Default::default());
 
-    assert_eq!(bmp.test_connection(), Err("I2C error"));
+    assert_eq!(bmp.test_connection(), Err(BMPError::I2C(ErrorKind::Other)));
     i2c.done();
 }

@@ -51,11 +51,11 @@ where
     /// ### Returns
     ///
     /// `Ok` if the device was detected and validated, `Err(msg)` otherwise, with `msg` containing more information.
-    pub fn test_connection(&mut self) -> Result<(), &'static str> {
+    pub fn test_connection(&mut self) -> Result<(), BMPError<I2C::Error>> {
         match self.read_id() {
             Ok(0x55) => Ok(()),
-            Err(_) => Err("I2C error"),
-            _ => Err("Unrecognized device identifier"),
+            Err(i2c_err) => Err(BMPError::I2C(i2c_err)),
+            _ => Err(BMPError::InvalidDeviceId),
         }
     }
 
@@ -75,7 +75,7 @@ where
     /// ### Returns
     ///
     /// `Ok` if the device was properly initialized
-    pub fn init(&mut self) -> Result<(), I2C::Error> {
+    pub fn init(&mut self) -> Result<(), BMPError<I2C::Error>> {
         let mut rx: [u8; 2] = [0, 0];
 
         self.calib_data.ac1 = self.read16_i2c(BMP_AC1_MSB_REG, BMP_AC1_LSB_REG, &mut rx)? as i16;
@@ -137,7 +137,7 @@ where
     /// ### Returns
     ///
     /// `temperature` in degrees Celsius (ºC)
-    pub fn read_temperature(&mut self) -> Result<f32, I2C::Error> {
+    pub fn read_temperature(&mut self) -> Result<f32, BMPError<I2C::Error>> {
         let ut = self.read_uncompensated_temperature()?;
         let (temperature, _) = logic::calculate_temperature(&self.calib_data, ut);
 
@@ -153,7 +153,7 @@ where
     /// ### Returns
     ///
     /// `pressure` in pascals (Pa)
-    pub fn read_pressure(&mut self) -> Result<i32, I2C::Error> {
+    pub fn read_pressure(&mut self) -> Result<i32, BMPError<I2C::Error>> {
         let ut = self.read_uncompensated_temperature()?;
         let (_, b5) = logic::calculate_temperature(&self.calib_data, ut);
         let up = self.read_uncompensated_pressure()?;
@@ -176,7 +176,7 @@ where
     /// ### Returns
     ///
     /// `altitude` in meters (m)
-    pub fn read_altitude(&mut self) -> Result<f32, I2C::Error> {
+    pub fn read_altitude(&mut self) -> Result<f32, BMPError<I2C::Error>> {
         let pressure = self.read_pressure()?;
         Ok(logic::calculate_altitude(pressure, self.sea_level_pressure))
     }

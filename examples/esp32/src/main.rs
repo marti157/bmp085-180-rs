@@ -30,7 +30,7 @@ fn main() -> ! {
 
     match bmp180.test_connection() {
         Ok(_) => log::info!("Device connected"),
-        Err(msg) => log::error!("{}", msg),
+        Err(msg) => log::error!("{:?}", msg),
     }
 
     bmp180.init().unwrap();

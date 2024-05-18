@@ -18,4 +18,4 @@ mod driver;
 mod logic;
 mod types;
 
-pub use types::{Config, Oss, BMP};
+pub use types::{BMPError, Config, Oss, BMP};

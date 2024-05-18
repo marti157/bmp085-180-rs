@@ -1,4 +1,5 @@
 use crate::constants::{BMP_DEVICE_ADDR, DEFAULT_SEA_LEVEL_PESSURE};
+use core::fmt::{Display, Formatter};
 
 /// BMP085/BMP180 driver.
 pub struct BMP<I2C, D> {
@@ -8,6 +9,32 @@ pub struct BMP<I2C, D> {
     pub(crate) calib_data: CalibrationData,
     pub(crate) oss: Oss,
     pub(crate) sea_level_pressure: i32,
+}
+
+/// All possible errors in this crate
+#[derive(Debug, PartialEq, Eq)]
+pub enum BMPError<I2CErr> {
+    /// I2C bus error
+    I2C(I2CErr),
+    /// Invalid BMP device identifier
+    InvalidDeviceId,
+}
+
+impl<E> From<E> for BMPError<E> {
+    /// Any unmapped error gets mapped to an I2C error.
+    fn from(err: E) -> Self {
+        BMPError::I2C(err)
+    }
+}
+
+// Implement Display for Error<E> if E also implements Display
+impl<E: Display> Display for BMPError<E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            BMPError::I2C(e) => write!(f, "I2C bus error: {e}"),
+            BMPError::InvalidDeviceId => write!(f, "Unrecognized BMP device identifier"),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
