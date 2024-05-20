@@ -233,3 +233,23 @@ fn read_altitude_fails_if_i2c_error() {
     assert_eq!(bmp.read_pressure(), Err(BMPError::I2C(ErrorKind::Other)));
     i2c.done();
 }
+
+#[test]
+fn soft_reset_ok() {
+    let expectations = [I2cTransaction::write(0x77, vec![0xE0, 0xB6])];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut bmp = BMP::new(i2c.clone(), NoopDelay, Default::default());
+
+    assert!(bmp.soft_reset().is_ok());
+    i2c.done();
+}
+
+#[test]
+fn soft_reset_fails_if_i2c_error() {
+    let expectations = [I2cTransaction::write(0x77, vec![0xE0, 0xB6]).with_error(ErrorKind::Other)];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut bmp = BMP::new(i2c.clone(), NoopDelay, Default::default());
+
+    assert_eq!(bmp.soft_reset(), Err(BMPError::I2C(ErrorKind::Other)));
+    i2c.done();
+}

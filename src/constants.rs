@@ -26,4 +26,5 @@ pub const BMP_CTRL_MEAS_REG: u8 = 0xF4;
 pub const BMP_OUT_MSB_REG: u8 = 0xF6;
 pub const BMP_OUT_LSB_REG: u8 = 0xF7;
 pub const BMP_OUT_XLSB_REG: u8 = 0xF8;
+pub const BMP_SOFT_RST_REG: u8 = 0xE0;
 pub const DEFAULT_SEA_LEVEL_PESSURE: i32 = 101_325;

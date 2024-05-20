@@ -179,6 +179,20 @@ where
         Ok(logic::calculate_altitude(pressure, self.sea_level_pressure))
     }
 
+    /// Trigger a soft reset of the BMP device. It will perform the same sequence as power on reset.
+    ///
+    /// ### Arguments
+    ///
+    /// None
+    ///
+    /// ### Returns
+    ///
+    /// None
+    pub fn soft_reset(&mut self) -> Result<(), BMPError<I2C::Error>> {
+        self.i2c.write(self.address, &[BMP_SOFT_RST_REG, 0xB6])?;
+        Ok(())
+    }
+
     /// Set the oversampling setting for the driver's measurements.
     /// See [Oss](Oss).
     ///
