@@ -1,13 +1,28 @@
 use crate::constants::*;
 use crate::logic;
 use crate::types::*;
-use embedded_hal::delay::DelayNs;
-use embedded_hal::i2c::I2c;
 
+#[cfg(not(feature = "async"))]
+use embedded_hal::delay::DelayNs;
+#[cfg(not(feature = "async"))]
+use embedded_hal::i2c::I2c;
+#[cfg(feature = "async")]
+use embedded_hal_async::delay::DelayNs as AsyncDelayNs;
+#[cfg(feature = "async")]
+use embedded_hal_async::i2c::I2c as AsyncI2c;
+
+#[maybe_async_cfg::maybe(
+    sync(
+        cfg(not(feature = "async")),
+        self = "BMP",
+        idents(AsyncI2c(sync = "I2c"), AsyncDelayNs(sync = "DelayNs"))
+    ),
+    async(feature = "async", keep_self)
+)]
 impl<I2C, D> BMP<I2C, D>
 where
-    I2C: I2c,
-    D: DelayNs,
+    I2C: AsyncI2c,
+    D: AsyncDelayNs,
 {
     /// Creates a new [`BMP`](BMP) driver instance, valid for both the BMP085 and BMP180 modules.
     ///
@@ -36,9 +51,11 @@ where
         }
     }
 
-    fn read_id(&mut self) -> Result<u8, I2C::Error> {
+    async fn read_id(&mut self) -> Result<u8, I2C::Error> {
         let mut id = [0];
-        self.i2c.write_read(self.address, &[BMP_ID_REG], &mut id)?;
+        self.i2c
+            .write_read(self.address, &[BMP_ID_REG], &mut id)
+            .await?;
         Ok(id[0])
     }
 
@@ -51,8 +68,8 @@ where
     /// ### Returns
     ///
     /// `Ok` if the device was detected and validated, `Err(msg)` otherwise, with `msg` containing more information.
-    pub fn test_connection(&mut self) -> Result<(), BMPError<I2C::Error>> {
-        match self.read_id() {
+    pub async fn test_connection(&mut self) -> Result<(), BMPError<I2C::Error>> {
+        match self.read_id().await {
             Ok(0x55) => Ok(()),
             Err(i2c_err) => Err(BMPError::I2C(i2c_err)),
             _ => Err(BMPError::InvalidDeviceId),
@@ -60,9 +77,18 @@ where
     }
 
     #[inline(always)]
-    fn read16_i2c(&mut self, reg_h: u8, reg_l: u8, rx: &mut [u8; 2]) -> Result<u16, I2C::Error> {
-        self.i2c.write_read(self.address, &[reg_h], &mut rx[0..1])?;
-        self.i2c.write_read(self.address, &[reg_l], &mut rx[1..2])?;
+    async fn read16_i2c(
+        &mut self,
+        reg_h: u8,
+        reg_l: u8,
+        rx: &mut [u8; 2],
+    ) -> Result<u16, I2C::Error> {
+        self.i2c
+            .write_read(self.address, &[reg_h], &mut rx[0..1])
+            .await?;
+        self.i2c
+            .write_read(self.address, &[reg_l], &mut rx[1..2])
+            .await?;
         Ok(((rx[0] as u16) << 8) | (rx[1] as u16))
     }
 
@@ -75,54 +101,87 @@ where
     /// ### Returns
     ///
     /// `Ok` if the device was properly initialized
-    pub fn init(&mut self) -> Result<(), BMPError<I2C::Error>> {
+    pub async fn init(&mut self) -> Result<(), BMPError<I2C::Error>> {
         let mut rx: [u8; 2] = [0, 0];
 
-        self.calib_data.ac1 = self.read16_i2c(BMP_AC1_MSB_REG, BMP_AC1_LSB_REG, &mut rx)? as i16;
-        self.calib_data.ac2 = self.read16_i2c(BMP_AC2_MSB_REG, BMP_AC2_LSB_REG, &mut rx)? as i16;
-        self.calib_data.ac3 = self.read16_i2c(BMP_AC3_MSB_REG, BMP_AC3_LSB_REG, &mut rx)? as i16;
-        self.calib_data.ac4 = self.read16_i2c(BMP_AC4_MSB_REG, BMP_AC4_LSB_REG, &mut rx)?;
-        self.calib_data.ac5 = self.read16_i2c(BMP_AC5_MSB_REG, BMP_AC5_LSB_REG, &mut rx)?;
-        self.calib_data.ac6 = self.read16_i2c(BMP_AC6_MSB_REG, BMP_AC6_LSB_REG, &mut rx)?;
-        self.calib_data.b1 = self.read16_i2c(BMP_B1_MSB_REG, BMP_B1_LSB_REG, &mut rx)? as i16;
-        self.calib_data.b2 = self.read16_i2c(BMP_B2_MSB_REG, BMP_B2_LSB_REG, &mut rx)? as i16;
-        self.calib_data.mb = self.read16_i2c(BMP_MB_MSB_REG, BMP_MB_LSB_REG, &mut rx)? as i16;
-        self.calib_data.mc = self.read16_i2c(BMP_MC_MSB_REG, BMP_MC_LSB_REG, &mut rx)? as i16;
-        self.calib_data.md = self.read16_i2c(BMP_MD_MSB_REG, BMP_MD_LSB_REG, &mut rx)? as i16;
+        self.calib_data.ac1 = self
+            .read16_i2c(BMP_AC1_MSB_REG, BMP_AC1_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.ac2 = self
+            .read16_i2c(BMP_AC2_MSB_REG, BMP_AC2_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.ac3 = self
+            .read16_i2c(BMP_AC3_MSB_REG, BMP_AC3_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.ac4 = self
+            .read16_i2c(BMP_AC4_MSB_REG, BMP_AC4_LSB_REG, &mut rx)
+            .await?;
+        self.calib_data.ac5 = self
+            .read16_i2c(BMP_AC5_MSB_REG, BMP_AC5_LSB_REG, &mut rx)
+            .await?;
+        self.calib_data.ac6 = self
+            .read16_i2c(BMP_AC6_MSB_REG, BMP_AC6_LSB_REG, &mut rx)
+            .await?;
+        self.calib_data.b1 = self
+            .read16_i2c(BMP_B1_MSB_REG, BMP_B1_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.b2 = self
+            .read16_i2c(BMP_B2_MSB_REG, BMP_B2_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.mb = self
+            .read16_i2c(BMP_MB_MSB_REG, BMP_MB_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.mc = self
+            .read16_i2c(BMP_MC_MSB_REG, BMP_MC_LSB_REG, &mut rx)
+            .await? as i16;
+        self.calib_data.md = self
+            .read16_i2c(BMP_MD_MSB_REG, BMP_MD_LSB_REG, &mut rx)
+            .await? as i16;
 
         Ok(())
     }
 
-    fn read_uncompensated_temperature(&mut self) -> Result<i32, I2C::Error> {
+    async fn read_uncompensated_temperature(&mut self) -> Result<i32, I2C::Error> {
         let mut rx: [u8; 2] = [0, 0];
 
-        self.i2c.write(self.address, &[BMP_CTRL_MEAS_REG, 0x2E])?;
-        self.delayer.delay_ms(5);
+        self.i2c
+            .write(self.address, &[BMP_CTRL_MEAS_REG, 0x2E])
+            .await?;
+        self.delayer.delay_ms(5).await;
 
-        Ok(self.read16_i2c(BMP_OUT_MSB_REG, BMP_OUT_LSB_REG, &mut rx)? as i32)
+        Ok(self
+            .read16_i2c(BMP_OUT_MSB_REG, BMP_OUT_LSB_REG, &mut rx)
+            .await? as i32)
     }
 
-    fn read_uncompensated_pressure(&mut self) -> Result<i32, I2C::Error> {
+    async fn read_uncompensated_pressure(&mut self) -> Result<i32, I2C::Error> {
         let mut rx_buffer: [u8; 4] = [0; 4];
 
-        self.i2c.write(
-            self.address,
-            &[BMP_CTRL_MEAS_REG, 0x34 + (self.oss.val() << 6)],
-        )?;
-        self.delayer.delay_us(match self.oss.val() {
-            0 => 4500,
-            1 => 7500,
-            2 => 13_000,
-            3 => 25_500,
-            _ => 25_500, // Value shouldn't be outside of range
-        });
+        self.i2c
+            .write(
+                self.address,
+                &[BMP_CTRL_MEAS_REG, 0x34 + (self.oss.val() << 6)],
+            )
+            .await?;
+        self.delayer
+            .delay_us(match self.oss.val() {
+                0 => 4500,
+                1 => 7500,
+                2 => 13_000,
+                3 => 25_500,
+                _ => 25_500, // Value shouldn't be outside of range
+            })
+            .await;
 
         self.i2c
-            .write_read(self.address, &[BMP_OUT_MSB_REG], &mut rx_buffer[1..2])?;
+            .write_read(self.address, &[BMP_OUT_MSB_REG], &mut rx_buffer[1..2])
+            .await?;
         self.i2c
-            .write_read(self.address, &[BMP_OUT_LSB_REG], &mut rx_buffer[2..3])?;
+            .write_read(self.address, &[BMP_OUT_LSB_REG], &mut rx_buffer[2..3])
+            .await?;
         self.i2c
-            .write_read(self.address, &[BMP_OUT_XLSB_REG], &mut rx_buffer[3..4])?;
+            .write_read(self.address, &[BMP_OUT_XLSB_REG], &mut rx_buffer[3..4])
+            .await?;
         let up = i32::from_be_bytes(rx_buffer) >> (8 - self.oss.val());
 
         Ok(up)
@@ -137,8 +196,8 @@ where
     /// ### Returns
     ///
     /// `temperature` in degrees Celsius (ºC)
-    pub fn read_temperature(&mut self) -> Result<f32, BMPError<I2C::Error>> {
-        let ut = self.read_uncompensated_temperature()?;
+    pub async fn read_temperature(&mut self) -> Result<f32, BMPError<I2C::Error>> {
+        let ut = self.read_uncompensated_temperature().await?;
         let (temperature, _) = logic::calculate_temperature(&self.calib_data, ut);
 
         Ok(temperature)
@@ -153,10 +212,10 @@ where
     /// ### Returns
     ///
     /// `pressure` in pascals (Pa)
-    pub fn read_pressure(&mut self) -> Result<i32, BMPError<I2C::Error>> {
-        let ut = self.read_uncompensated_temperature()?;
+    pub async fn read_pressure(&mut self) -> Result<i32, BMPError<I2C::Error>> {
+        let ut = self.read_uncompensated_temperature().await?;
         let (_, b5) = logic::calculate_temperature(&self.calib_data, ut);
-        let up = self.read_uncompensated_pressure()?;
+        let up = self.read_uncompensated_pressure().await?;
 
         match logic::calculate_pressure(&self.calib_data, self.oss.val(), b5, up) {
             Some(pressure) => Ok(pressure),
@@ -174,8 +233,8 @@ where
     /// ### Returns
     ///
     /// `altitude` in meters (m)
-    pub fn read_altitude(&mut self) -> Result<f32, BMPError<I2C::Error>> {
-        let pressure = self.read_pressure()?;
+    pub async fn read_altitude(&mut self) -> Result<f32, BMPError<I2C::Error>> {
+        let pressure = self.read_pressure().await?;
         Ok(logic::calculate_altitude(pressure, self.sea_level_pressure))
     }
 
@@ -188,8 +247,10 @@ where
     /// ### Returns
     ///
     /// None
-    pub fn soft_reset(&mut self) -> Result<(), BMPError<I2C::Error>> {
-        self.i2c.write(self.address, &[BMP_SOFT_RST_REG, 0xB6])?;
+    pub async fn soft_reset(&mut self) -> Result<(), BMPError<I2C::Error>> {
+        self.i2c
+            .write(self.address, &[BMP_SOFT_RST_REG, 0xB6])
+            .await?;
         Ok(())
     }
 
