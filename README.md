@@ -14,9 +14,24 @@ The Bosch [BMP085](https://www.sparkfun.com/datasheets/Components/General/BST-BM
 $ cargo add bmp085-180-rs
 ```
 
+### Features
+
+| Feature | Description               |
+| ------- | ------------------------- |
+| `sync`  | Blocking transactions     |
+| `async` | Non-blocking transactions |
+
 ### Usage
 
-See [examples](https://github.com/marti157/bmp085-180-rs/tree/main/examples) for usage with esp32.
+If you require `async` support, make sure to enable the following feature in your `Cargo.toml`:
+
+```toml
+bmp085-180-rs = { version = "1.0.0", features = [ "async" ] }
+```
+
+The default is `sync`.
+
+See [examples](https://github.com/marti157/bmp085-180-rs/tree/main/examples) for both blocking & async usage with esp32.
 
 ### License
 
