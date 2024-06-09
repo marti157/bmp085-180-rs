@@ -12,8 +12,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Setup Rust
+        run: |
+          curl -L https://github.com/esp-rs/espup/releases/latest/download/espup-x86_64-unknown-linux-gnu -o espup
+          chmod a+x espup && ./espup install
 
       - name: Build
         run: cargo build --verbose
@@ -23,3 +28,12 @@ jobs:
 
       - name: Test documentation generation
         run: cargo test && cargo doc
+
+      - name: Build examples
+        if: always()
+        run: |
+          . $HOME/export-esp.sh
+          for dir in examples/*/; do
+            echo "Building $dir"
+            (cd "$dir" && cargo build --release)
+          done
