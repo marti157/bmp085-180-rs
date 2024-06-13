@@ -1,0 +1,32 @@
+[package]
+name = "bmp085-180-example-embassy-ch32"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bmp085-180-rs = { path = "../../" }
+ch32-hal = { default-features = false, features = [
+    "ch32v208wbu6",
+    "embassy",
+    "rt",
+], git = "https://github.com/ch32-rs/ch32-hal.git", rev = "56de16c1aab4250d9beda0aeeb9b14712035a24c" }
+embassy-executor = { version = "0.5.0", features = [
+    "nightly",
+    "integrated-timers",
+    "arch-riscv32",
+    "executor-thread",
+] }
+embassy-time = { version = "0.3.0" }
+qingke = { version = "0.2.0" }
+qingke-rt = { version = "0.2.1" }
+panic-halt = "0.2.0"
+
+[profile.release]
+strip = false   # Symbols are not flashed to the microcontroller, so don't strip them.
+lto = true
+opt-level = "z" # Optimize for size.
+
+[profile.dev]
+strip = false   # Symbols are not flashed to the microcontroller, so don't strip them.
+lto = true
+opt-level = "z" # Optimize for size.

@@ -31,7 +31,7 @@ bmp085-180-rs = { version = "1.0.0", features = [ "async" ] }
 
 The default is `sync`.
 
-See [examples](https://github.com/marti157/bmp085-180-rs/tree/main/examples) for both blocking & async usage with esp32.
+See [examples](https://github.com/marti157/bmp085-180-rs/tree/main/examples) for both blocking & async usage with esp32 or ch32.
 
 ### License
 
